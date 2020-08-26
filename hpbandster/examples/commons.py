@@ -5,7 +5,7 @@ Worker for Examples 1-4
 This class implements a very simple worker used in the firt examples.
 """
 
-import numpy
+import numpy as np
 import time
 
 import ConfigSpace as CS
@@ -37,7 +37,8 @@ class MyWorker(Worker):
                 'info' (dict)
         """
 
-        res = numpy.clip(config['x'] + numpy.random.randn()/budget, config['x']/2, 1.5*config['x'])
+        #res = numpy.clip(config['x'] + numpy.random.randn()/budget, config['x']/2, 1.5*config['x'])
+        res = branin([config['x1'], config['x2']])
         time.sleep(self.sleep_interval)
 
         return({
@@ -48,6 +49,23 @@ class MyWorker(Worker):
     @staticmethod
     def get_configspace():
         config_space = CS.ConfigurationSpace()
-        config_space.add_hyperparameter(CS.UniformFloatHyperparameter('x', lower=0, upper=1))
+        config_space.add_hyperparameter(CS.UniformFloatHyperparameter('x1', lower=-5, upper=10))
+        config_space.add_hyperparameter(CS.UniformFloatHyperparameter('x2', lower=0, upper=15))
         return(config_space)
 
+def branin_with_params(x, a, b, c, r, s, t):
+	""" Computes the Branin function. """
+	x1 = x[0]
+	x2 = x[1]
+	neg_ret = float(a * (x2 - b*x1**2 + c*x1 - r)**2 + s*(1-t)*np.cos(x1) + s)
+	return float(neg_ret)
+
+def branin(x):
+	""" Branin function."""
+	a = 1
+	b = 5.1/(4*np.pi**2)
+	c = 5/np.pi
+	r = 6
+	s = 10
+	t = 1/(8*np.pi)
+	return branin_with_params(x, a, b, c, r, s, t)

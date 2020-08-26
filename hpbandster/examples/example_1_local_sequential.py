@@ -12,14 +12,14 @@ import hpbandster.core.nameserver as hpns
 import hpbandster.core.result as hpres
 
 from hpbandster.optimizers import BOHB as BOHB
-from hpbandster.examples.commons import MyWorker
+from hpbandster.examples.commons import MyWorker, branin
 
 
 
 parser = argparse.ArgumentParser(description='Example 1 - sequential and local execution.')
 parser.add_argument('--min_budget',   type=float, help='Minimum budget used during the optimization.',    default=9)
 parser.add_argument('--max_budget',   type=float, help='Maximum budget used during the optimization.',    default=243)
-parser.add_argument('--n_iterations', type=int,   help='Number of iterations performed by the optimizer', default=4)
+parser.add_argument('--n_iterations', type=int,   help='Number of iterations performed by the optimizer', default=200)
 args=parser.parse_args()
 
 
@@ -63,6 +63,7 @@ id2config = res.get_id2config_mapping()
 incumbent = res.get_incumbent_id()
 
 print('Best found configuration:', id2config[incumbent]['config'])
+print('f(x):', branin([id2config[incumbent]['config']['x1'], id2config[incumbent]['config']['x2']]))
 print('A total of %i unique configurations where sampled.' % len(id2config.keys()))
 print('A total of %i runs where executed.' % len(res.get_all_runs()))
 print('Total budget corresponds to %.1f full function evaluations.'%(sum([r.budget for r in res.get_all_runs()])/args.max_budget))
