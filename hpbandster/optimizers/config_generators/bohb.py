@@ -126,7 +126,12 @@ class BOHB(base_config_generator):
 			info_dict['model_based_pick'] = False
 
 		if sample is None:
-			sample = self.sample_configuration(self.kde_models, info_dict)
+			samples = []
+
+			for i in range(2):
+				samples.append(self.sample_configuration(self.kde_models, info_dict, i))
+
+			sample = samples[0] if np.random.rand() > 0.5 else samples[1]
 
 		try:
 			sample = ConfigSpace.util.deactivate_inactive_hyperparameters(
@@ -140,10 +145,11 @@ class BOHB(base_config_generator):
 								sample)
 			sample = self.configspace.sample_configuration().get_dictionary()
 		self.logger.debug('done sampling a new configuration.')
+		print('CONFIG IS', sample)
 		return sample, info_dict
 
 
-	def sample_configuration(self, kde_models, info_dict):
+	def sample_configuration(self, kde_models, info_dict, objective):
 		best = np.inf
 		best_vector = None
 
@@ -151,13 +157,13 @@ class BOHB(base_config_generator):
 			# sample from largest budget
 			budget = max(kde_models.keys())
 
-			l = kde_models[budget]['good'].pdf
-			g = kde_models[budget]['bad' ].pdf
+			l = kde_models[budget][objective]['good'].pdf
+			g = kde_models[budget][objective]['bad'].pdf
 
 			minimize_me = lambda x: max(1e-32, g(x))/max(l(x),1e-32)
 
-			kde_good = kde_models[budget]['good']
-			kde_bad = kde_models[budget]['bad']
+			kde_good = kde_models[budget][objective]['good']
+			kde_bad = kde_models[budget][objective]['bad']
 
 			for i in range(self.num_samples):
 				idx = np.random.randint(0, len(kde_good.data))
@@ -291,7 +297,7 @@ class BOHB(base_config_generator):
 		else:
 			# same for non numeric losses.
 			# Note that this means losses of minus infinity will count as bad!
-			loss = job.result["loss"] if np.isfinite(job.result["loss"]) else np.inf
+			loss = job.result["loss"] if np.isfinite(job.result["loss"]).all() else [np.inf, np.inf]
 
 		budget = job.kwargs["budget"]
 
@@ -328,33 +334,36 @@ class BOHB(base_config_generator):
 		n_bad = max(self.min_points_in_model, ((100-self.top_n_percent)*train_configs.shape[0])//100)
 
 		# Refit KDE for the current budget
-		idx = np.argsort(train_losses)
+		idx = np.argsort(train_losses, axis=0)
+		kdes = []
 
-		train_data_good = self.impute_conditional_data(train_configs[idx[:n_good]])
-		train_data_bad  = self.impute_conditional_data(train_configs[idx[n_good:n_good+n_bad]])
+		for i in range(2):
+			train_data_good = self.impute_conditional_data(train_configs[idx[:n_good], i])
+			train_data_bad  = self.impute_conditional_data(train_configs[idx[n_good:n_good+n_bad], i])
 
-		if train_data_good.shape[0] <= train_data_good.shape[1]:
-			return
-		if train_data_bad.shape[0] <= train_data_bad.shape[1]:
-			return
+			if train_data_good.shape[0] <= train_data_good.shape[1]:
+				return
+			if train_data_bad.shape[0] <= train_data_bad.shape[1]:
+				return
 
-		#more expensive crossvalidation method
-		#bw_estimation = 'cv_ls'
+			#more expensive crossvalidation method
+			#bw_estimation = 'cv_ls'
 
-		# quick rule of thumb
-		bw_estimation = 'normal_reference'
+			# quick rule of thumb
+			bw_estimation = 'normal_reference'
 
-		bad_kde = sm.nonparametric.KDEMultivariate(data=train_data_bad,  var_type=self.kde_vartypes, bw=bw_estimation)
-		good_kde = sm.nonparametric.KDEMultivariate(data=train_data_good, var_type=self.kde_vartypes, bw=bw_estimation)
+			bad_kde = sm.nonparametric.KDEMultivariate(data=train_data_bad,  var_type=self.kde_vartypes, bw=bw_estimation)
+			good_kde = sm.nonparametric.KDEMultivariate(data=train_data_good, var_type=self.kde_vartypes, bw=bw_estimation)
 
-		bad_kde.bw = np.clip(bad_kde.bw, self.min_bandwidth,None)
-		good_kde.bw = np.clip(good_kde.bw, self.min_bandwidth,None)
+			bad_kde.bw = np.clip(bad_kde.bw, self.min_bandwidth,None)
+			good_kde.bw = np.clip(good_kde.bw, self.min_bandwidth,None)
 
-		self.kde_models[budget] = {
+			kdes.append({
 				'good': good_kde,
 				'bad' : bad_kde
-		}
+			})
+
+		self.kde_models[budget] = kdes
 
 		# update probs for the categorical parameters for later sampling
 		self.logger.debug('done building a new model for budget %f based on %i/%i split\nBest loss for this budget:%f\n\n\n\n\n'%(budget, n_good, n_bad, np.min(train_losses)))
-

@@ -12,14 +12,14 @@ import hpbandster.core.nameserver as hpns
 import hpbandster.core.result as hpres
 
 from hpbandster.optimizers import BOHB as BOHB
-from hpbandster.examples.commons import MyWorker, branin
+from hpbandster.examples.commons import MyWorker, branin, currin_exp
 
 
 
 parser = argparse.ArgumentParser(description='Example 1 - sequential and local execution.')
-parser.add_argument('--min_budget',   type=float, help='Minimum budget used during the optimization.',    default=9)
-parser.add_argument('--max_budget',   type=float, help='Maximum budget used during the optimization.',    default=243)
-parser.add_argument('--n_iterations', type=int,   help='Number of iterations performed by the optimizer', default=200)
+parser.add_argument('--min_budget',   type=float, help='Minimum budget used during the optimization.',	default=9)
+parser.add_argument('--max_budget',   type=float, help='Maximum budget used during the optimization.',	default=243)
+parser.add_argument('--n_iterations', type=int,   help='Number of iterations performed by the optimizer', default=4)
 args=parser.parse_args()
 
 
@@ -44,9 +44,9 @@ w.run(background=True)
 # Here, we run BOHB, but that is not essential.
 # The run method will return the `Result` that contains all runs performed.
 bohb = BOHB(  configspace = w.get_configspace(),
-              run_id = 'example1', nameserver='127.0.0.1',
-              min_budget=args.min_budget, max_budget=args.max_budget
-           )
+			  run_id = 'example1', nameserver='127.0.0.1',
+			  min_budget=args.min_budget, max_budget=args.max_budget
+		   )
 res = bohb.run(n_iterations=args.n_iterations)
 
 # Step 4: Shutdown
@@ -62,8 +62,19 @@ NS.shutdown()
 id2config = res.get_id2config_mapping()
 incumbent = res.get_incumbent_id()
 
-print('Best found configuration:', id2config[incumbent]['config'])
-print('f(x):', branin([id2config[incumbent]['config']['x1'], id2config[incumbent]['config']['x2']]))
+pareto_front = res.get_pareto_front()
+print('Pareto front:', pareto_front)
+
+for point in pareto_front:
+	config = id2config[point]['config']
+	#print(config)
+	x1 = config['x1']
+	x2 = config['x2']
+	f_x = branin([x1, x2])
+	g_x = currin_exp([x1, x2])
+	print('x1: {}\tx2: {}\tf(x): {}\tg(x): {}'.format(str(x1), str(x2), str(f_x), str(g_x)))
+#print('Best found configuration:', id2config[incumbent]['config'])
+#print('f(x):', branin([id2config[incumbent]['config']['x1'], id2config[incumbent]['config']['x2']]))
 print('A total of %i unique configurations where sampled.' % len(id2config.keys()))
 print('A total of %i runs where executed.' % len(res.get_all_runs()))
 print('Total budget corresponds to %.1f full function evaluations.'%(sum([r.budget for r in res.get_all_runs()])/args.max_budget))

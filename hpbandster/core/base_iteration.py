@@ -130,7 +130,7 @@ class BaseIteration(object):
 		d.time_stamps[budget] = timestamps
 		d.results[budget] = result
 
-		if (not job.result is None) and np.isfinite(result['loss']):
+		if (not job.result is None) and np.isfinite(result['loss']).all():
 			d.status = 'REVIEW'
 		else:
 			d.status = 'CRASHED'
@@ -230,11 +230,11 @@ class BaseIteration(object):
 		advance = self._advance_to_next_stage(config_ids, losses)
 
 		for i, a in enumerate(advance):
-			if a:
+			if a.all():
 				self.logger.debug('ITERATION: Advancing config %s to next budget %f'%(config_ids[i], self.budgets[self.stage]))
 
 		for i, cid in enumerate(config_ids):
-			if advance[i]:
+			if advance[i].all():
 				self.data[cid].status = 'QUEUED'
 				self.data[cid].budget = self.budgets[self.stage]
 				self.actual_num_configs[self.stage] += 1

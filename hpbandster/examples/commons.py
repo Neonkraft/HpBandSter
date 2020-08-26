@@ -37,13 +37,16 @@ class MyWorker(Worker):
                 'info' (dict)
         """
 
+
         #res = numpy.clip(config['x'] + numpy.random.randn()/budget, config['x']/2, 1.5*config['x'])
-        res = branin([config['x1'], config['x2']])
+        res1 = branin([config['x1'], config['x2']])
+        res2 = currin_exp([config['x1'], config['x2']])
         time.sleep(self.sleep_interval)
 
+        #print(res1, res2, budget)
         return({
-                    'loss': float(res),  # this is the a mandatory field to run hyperband
-                    'info': res  # can be used for any user-defined information - also mandatory
+                    'loss': [res1, res2],  # this is the a mandatory field to run hyperband
+                    'info': None  # can be used for any user-defined information - also mandatory
                 })
     
     @staticmethod
@@ -69,3 +72,16 @@ def branin(x):
 	s = 10
 	t = 1/(8*np.pi)
 	return branin_with_params(x, a, b, c, r, s, t)
+
+def currin_exp_01(x):
+  """ Currin exponential function. """
+  x1 = x[0]
+  x2 = x[1]
+  val_1 = 1 - np.exp(-1/(2 * x2))
+  val_2 = (2300*x1**3 + 1900*x1**2 + 2092*x1 + 60) / (100*x1**3 + 500*x1**2 + 4*x1 + 20)
+  return float(val_1 * val_2)
+
+
+def currin_exp(x):
+  """ Currint exponential in branin bounds. """
+  return -currin_exp_01([x[0] * 15 - 5, x[1] * 15])

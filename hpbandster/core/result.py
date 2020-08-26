@@ -1,6 +1,7 @@
 import copy
 import os
 import json
+import numpy as np
 
 from hpbandster.core.base_iteration import  Datum
 
@@ -224,6 +225,13 @@ class Result(object):
 		among all runs on the maximum budget! If no run finishes on the
 		maximum budget, None is returned!
 		"""
+		tmp_list = self.get_max_budget_losses()
+
+		if len(tmp_list) > 0:
+			return(min(tmp_list)[1])
+		return(None)
+
+	def get_max_budget_losses(self):
 		tmp_list = []
 		for k,v in self.data.items():
 			try:
@@ -236,11 +244,21 @@ class Result(object):
 			except:
 				raise
 
-		if len(tmp_list) > 0:
-			return(min(tmp_list)[1])
-		return(None)
+		return tmp_list
 
+	def get_pareto_front(self):
+		losses = self.get_max_budget_losses()
+		costs = np.array([l[0] for l in losses])
 
+		is_pareto_front = np.ones(costs.shape[0], dtype = bool)
+		for i, cost in enumerate(costs):
+			if is_pareto_front[i]:
+				is_pareto_front[is_pareto_front] = np.any(costs[is_pareto_front] < cost, axis=1)
+				is_pareto_front[i] = True
+
+		idx = np.where(is_pareto_front)[0]
+		pareto_front = [l[1] for i, l in enumerate(losses) if i in idx]
+		return pareto_front
 
 	def get_incumbent_trajectory(self, all_budgets=True, bigger_is_better=True, non_decreasing_budget=True):
 		"""
