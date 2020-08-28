@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-	name='hpbandster',
+	name='myhpbandster',
 	version='0.7.4',
 	description='HyPerBAND on STERoids, a distributed Hyperband implementation with lots of room for improvement',
 	author='Stefan Falkner',
