@@ -17,7 +17,7 @@ from hpbandster.core.base_config_generator import base_config_generator
 class BOHB(base_config_generator):
 	def __init__(self, configspace, min_points_in_model = None,
 				 top_n_percent=15, num_samples = 64, random_fraction=1/3,
-				 bandwidth_factor=3, min_bandwidth=1e-3,
+				 bandwidth_factor=3, min_bandwidth=1e-3, n_objectives=1,
 				**kwargs):
 		"""
 			Fits for each given budget a kernel density estimator on the best N percent of the
@@ -50,6 +50,7 @@ class BOHB(base_config_generator):
 		self.configspace = configspace
 		self.bw_factor = bandwidth_factor
 		self.min_bandwidth = min_bandwidth
+		self.n_objectives = n_objectives
 
 		self.min_points_in_model = min_points_in_model
 		if min_points_in_model is None:
@@ -128,7 +129,7 @@ class BOHB(base_config_generator):
 		if sample is None:
 			samples = []
 
-			for i in range(2):
+			for i in range(self.n_objectives):
 				samples.append(self.sample_configuration(self.kde_models, info_dict, i))
 
 			sample = samples[0] if np.random.rand() > 0.5 else samples[1]
@@ -293,7 +294,7 @@ class BOHB(base_config_generator):
 		if job.result is None:
 			# One could skip crashed results, but we decided to
 			# assign a +inf loss and count them as bad configurations
-			loss = np.inf
+			loss = [np.inf] * self.n_objectives if self.n_objectives > 1 else np.inf
 		else:
 			# same for non numeric losses.
 			# Note that this means losses of minus infinity will count as bad!
@@ -337,9 +338,9 @@ class BOHB(base_config_generator):
 		idx = np.argsort(train_losses, axis=0)
 		kdes = []
 
-		for i in range(2):
-			train_data_good = self.impute_conditional_data(train_configs[idx[:n_good], i])
-			train_data_bad  = self.impute_conditional_data(train_configs[idx[n_good:n_good+n_bad], i])
+		for i in range(self.n_objectives):
+			train_data_good = self.impute_conditional_data(train_configs[idx[:n_good, i]])
+			train_data_bad  = self.impute_conditional_data(train_configs[idx[n_good:n_good+n_bad, i]])
 
 			if train_data_good.shape[0] <= train_data_good.shape[1]:
 				return

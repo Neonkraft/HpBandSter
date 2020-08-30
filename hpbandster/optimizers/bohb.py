@@ -18,7 +18,7 @@ class BOHB(Master):
 					eta=3, min_budget=0.01, max_budget=1,
 					min_points_in_model = None,	top_n_percent=15,
 					num_samples = 64, random_fraction=1/3, bandwidth_factor=3,
-					min_bandwidth=1e-3,
+					min_bandwidth=1e-3, n_objectives=1,
 					**kwargs ):
 		"""
                 BOHB performs robust and efficient hyperparameter optimization
@@ -88,7 +88,8 @@ class BOHB(Master):
 					num_samples = num_samples,
 					random_fraction=random_fraction,
 					bandwidth_factor=bandwidth_factor,
-					min_bandwidth = min_bandwidth
+					min_bandwidth = min_bandwidth,
+					n_objectives = n_objectives
 					)
 
 		super().__init__(config_generator=cg, **kwargs)
