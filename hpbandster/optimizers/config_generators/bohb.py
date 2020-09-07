@@ -17,7 +17,7 @@ from hpbandster.core.base_config_generator import base_config_generator
 class BOHB(base_config_generator):
 	def __init__(self, configspace, min_points_in_model = None,
 				 top_n_percent=15, num_samples = 64, random_fraction=1/3,
-				 bandwidth_factor=3, min_bandwidth=1e-3, n_objectives=1,
+				 bandwidth_factor=3, min_bandwidth=1e-3, n_objectives=1, p=[0.5, 0.5],
 				**kwargs):
 		"""
 			Fits for each given budget a kernel density estimator on the best N percent of the
@@ -51,6 +51,7 @@ class BOHB(base_config_generator):
 		self.bw_factor = bandwidth_factor
 		self.min_bandwidth = min_bandwidth
 		self.n_objectives = n_objectives
+		self.p = p
 
 		self.min_points_in_model = min_points_in_model
 		if min_points_in_model is None:
@@ -132,7 +133,7 @@ class BOHB(base_config_generator):
 			for i in range(self.n_objectives):
 				samples.append(self.sample_configuration(self.kde_models, info_dict, i))
 
-			sample = samples[0] if np.random.rand() > 0.5 else samples[1]
+			sample = np.random.choice(samples, p=self.p)
 
 		try:
 			sample = ConfigSpace.util.deactivate_inactive_hyperparameters(

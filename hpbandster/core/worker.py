@@ -58,7 +58,7 @@ class Worker(object):
 		self.thread=None
 
 		if logger is None:
-			logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s',  datefmt='%H:%M:%S')
+			logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 			self.logger = logging.getLogger(self.worker_id)
 		else:
 			self.logger = logger
